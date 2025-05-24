@@ -1,0 +1,52 @@
+#!/bin/bash
+# https-server
+# 2025-04-30
+#
+# This script starts a one-off HTTPS server using OpenSSL.
+# It generates a temporary self-signed SSL certificate and private key,
+# then uses OpenSSL's s_server command to serve files from the current directory
+# over an encrypted HTTPS connection on port 4443.
+#
+# The script also handles cleanup:
+# - When the server is stopped (e.g., via Ctrl-C), the temporary certificate
+#   and key files are automatically removed.
+#
+# Usage:
+# - Run the script: https-server
+# - Access the server: https://localhost:4443
+# - Use curl with the -k option to ignore certificate validation:
+#   curl -k https://localhost:4443
+#
+# Note:
+# - This server is intended for testing purposes only and should not be used
+#   in production environments.
+# - This script depends on `nics` from https://github.com/jftuga/nics
+#   which can be installed via: brew tap jftuga/homebrew-tap; brew update; brew install jftuga/tap/nics
+# - Assumes the primary internal IP address is the first entry from the `nics` output
+
+echo
+IP_ADDR=$(nics | awk '/broadcast/ {print $4}' | sed 's,/.*,,' | head -1)
+echo
+ls -trp | grep -v "/" | tail -20 | awk -v ip="${IP_ADDR}" '{print "curl -LOk https://"ip":4443/"$0}'
+echo
+
+# Generate the self-signed certificate
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 1 -nodes -subj "/CN=localhost" 2>/dev/null
+
+# Define a cleanup function to remove the certificate and key files
+cleanup() {
+    echo
+    echo "Removing temporary SSL files..."
+    rm -v -f cert.pem key.pem
+    exit 0
+}
+
+# Set up a trap to catch SIGINT (Ctrl-C) and call the cleanup function
+trap cleanup SIGINT
+
+# Start the OpenSSL server
+echo "Starting HTTPS server on port 4443. Press Ctrl-C to stop."
+openssl s_server -accept 4443 -key key.pem -cert cert.pem -WWW
+
+# Cleanup after the server exits (if not interrupted)
+cleanup
