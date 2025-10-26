@@ -14,11 +14,13 @@ Together, these tools provide a quick way to create and serve file listings for 
 ## Features
 
 ### dirindex.py Features
-- **Flexible file filtering** with glob patterns
+- **Flexible file filtering** with glob patterns or regex patterns
+- **Recursive directory scanning** with optional depth limiting
 - **Multiple sorting options** (name, size, time) with natural numeric sorting
 - **Two layout modes**: flex layout or columnar table layout
 - **Responsive design** that works on desktop and mobile
 - **File metadata display** including size and modification time
+- **File count display** in the header
 - **Clean HTML output** with embedded CSS
 - **Automatic exclusion** of the generated index file
 
@@ -84,6 +86,51 @@ Index only specific file types using glob patterns:
 
 # Multiple patterns
 ./dirindex.py -g "*.jpg" -g "*.png" -g "*.gif"
+```
+
+### Regex Pattern Matching
+
+Use regex patterns instead of glob patterns for more powerful file filtering:
+```bash
+# Only HTML and CSS files using regex
+./dirindex.py -m "\.html$" -m "\.css$"
+
+# Files starting with 'data' and ending with .json
+./dirindex.py -m "^data.*\.json$"
+
+# Case-sensitive matching (default is case-insensitive)
+./dirindex.py -m "Report" --match-sensitive
+
+# Files containing 'test' or 'spec' in the name
+./dirindex.py -m "(test|spec)"
+
+# Negation: include all files EXCEPT .json and .html files
+./dirindex.py -m "^(?!.*\.(json|html)$).+"
+
+# Negation: include all files EXCEPT those starting with 'temp'
+./dirindex.py -m "^(?!temp).*"
+```
+
+**Note:** The `-g` (glob) and `-m` (regex) options are mutually exclusive - you can use one or the other, but not both.
+
+### Recursive Directory Scanning
+
+Scan subdirectories recursively:
+```bash
+# Recursively scan all subdirectories (unlimited depth)
+./dirindex.py -r
+
+# Limit recursion depth to 2 levels
+./dirindex.py -r -maxdepth 2
+
+# Find all JPG files up to 3 levels deep
+./dirindex.py -r -maxdepth 3 -g "*.jpg"
+
+# Recursively find Python files using regex
+./dirindex.py -r -m "\.py$"
+
+# Recursive scan with sorting
+./dirindex.py -r --sort-by-size -g "*.pdf"
 ```
 
 ### Sorting Options
@@ -182,7 +229,11 @@ Access the server at: `https://localhost:4443`
 | `--title` | `-t` | Set the HTML page title (default: "Directory Index") |
 | `--header` | `-H` | Set the header text (default: "Files in [directory name]") |
 | `--output` | `-o` | Set output filename (default: "index.html") |
-| `--glob` | `-g` | Glob pattern to match files (can be used multiple times) |
+| `--glob` | `-g` | Glob pattern to match files (can be used multiple times, mutually exclusive with `-m`) |
+| `--regex` | `-m` | Regex pattern to match files (can be used multiple times, mutually exclusive with `-g`) |
+| `--match-sensitive` | | Make regex matching case-sensitive (only used with `-m`) |
+| `--recursive` | `-r` | Recursively scan subdirectories |
+| `-maxdepth` | | Limit recursion depth (only valid with `-r`). 1 = current directory only, 2 = one level deep, etc. |
 | `--columns` | `-c` | Use columnar table layout instead of flex layout |
 | `--sort-by-time` | | Sort by modification time, newest first |
 | `--sort-by-time-desc` | | Sort by modification time, oldest first |
